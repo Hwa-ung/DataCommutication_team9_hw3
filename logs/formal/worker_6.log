@@ -1,0 +1,4 @@
+[10:21:36.176] [W6] [INIT] id=6 peer_port=7006 step_delay=100ms small_primes=1229
+[10:21:36.179] [W6] [HELLO] sent (127.0.0.1:7006)
+[10:21:37.078] [W6] [LAUNCHER] control connected
+[10:22:07.761] [W6] [ERROR] disconnected before RING

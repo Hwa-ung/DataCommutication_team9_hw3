@@ -1,0 +1,4 @@
+[10:21:36.195] [W8] [INIT] id=8 peer_port=7008 step_delay=100ms small_primes=1229
+[10:21:36.198] [W8] [HELLO] sent (127.0.0.1:7008)
+[10:21:37.078] [W8] [LAUNCHER] control connected
+[10:22:07.762] [W8] [ERROR] disconnected before RING

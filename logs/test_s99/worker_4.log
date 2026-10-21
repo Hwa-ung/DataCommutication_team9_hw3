@@ -1,0 +1,360 @@
+[10:00:12.259] [W4] [INIT] id=4 peer_port=7004 step_delay=50ms small_primes=1229
+[10:00:12.261] [W4] [HELLO] sent (127.0.0.1:7004)
+[10:00:12.295] [W4] [RING] buddy=W5 127.0.0.1:7005
+[10:00:12.296] [W4] [RING_OK] sent
+[10:00:12.296] [W4] [PEER] CKPT conn from W3
+[10:00:12.296] [W4] [START] RUNNING
+[10:00:12.297] [W4] [ASSIGN] Task 1 e=1
+[10:00:12.297] [W4] [COMPUTE] Task 1 e=1 s0=1 partial=0
+[10:00:12.819] [W4] [RESULT] Task 1 e=1 v=8392
+[10:00:12.819] [W4] [ACK] Task 1
+[10:00:12.820] [W4] [ASSIGN] Task 11 e=1
+[10:00:12.820] [W4] [COMPUTE] Task 11 e=1 s0=1 partial=0
+[10:00:13.168] [W4] [LAUNCHER] control connected
+[10:00:13.168] [W4] [READY] -> Launcher (from launcher connect)
+[10:00:13.344] [W4] [RESULT] Task 11 e=1 v=7224
+[10:00:13.345] [W4] [ACK] Task 11
+[10:00:13.345] [W4] [ASSIGN] Task 22 e=1
+[10:00:13.346] [W4] [COMPUTE] Task 22 e=1 s0=1 partial=0
+[10:00:13.871] [W4] [RESULT] Task 22 e=1 v=6849
+[10:00:13.871] [W4] [ACK] Task 22
+[10:00:13.872] [W4] [ASSIGN] Task 36 e=1
+[10:00:13.872] [W4] [COMPUTE] Task 36 e=1 s0=1 partial=0
+[10:00:14.396] [W4] [RESULT] Task 36 e=1 v=6671
+[10:00:14.396] [W4] [ACK] Task 36
+[10:00:14.397] [W4] [ASSIGN] Task 45 e=1
+[10:00:14.397] [W4] [COMPUTE] Task 45 e=1 s0=1 partial=0
+[10:00:14.921] [W4] [RESULT] Task 45 e=1 v=6493
+[10:00:14.921] [W4] [ACK] Task 45
+[10:00:14.922] [W4] [ASSIGN] Task 51 e=1
+[10:00:14.922] [W4] [COMPUTE] Task 51 e=1 s0=1 partial=0
+[10:00:15.448] [W4] [RESULT] Task 51 e=1 v=6436
+[10:00:15.448] [W4] [ACK] Task 51
+[10:00:15.448] [W4] [ASSIGN] Task 61 e=1
+[10:00:15.448] [W4] [COMPUTE] Task 61 e=1 s0=1 partial=0
+[10:00:15.973] [W4] [RESULT] Task 61 e=1 v=6402
+[10:00:15.974] [W4] [ACK] Task 61
+[10:00:15.974] [W4] [ASSIGN] Task 70 e=1
+[10:00:15.974] [W4] [COMPUTE] Task 70 e=1 s0=1 partial=0
+[10:00:16.497] [W4] [RESULT] Task 70 e=1 v=6367
+[10:00:16.497] [W4] [ACK] Task 70
+[10:00:16.497] [W4] [ASSIGN] Task 80 e=1
+[10:00:16.497] [W4] [COMPUTE] Task 80 e=1 s0=1 partial=0
+[10:00:17.024] [W4] [RESULT] Task 80 e=1 v=6247
+[10:00:17.024] [W4] [ACK] Task 80
+[10:00:17.025] [W4] [ASSIGN] Task 91 e=1
+[10:00:17.025] [W4] [COMPUTE] Task 91 e=1 s0=1 partial=0
+[10:00:17.553] [W4] [RESULT] Task 91 e=1 v=6245
+[10:00:17.553] [W4] [ACK] Task 91
+[10:00:17.554] [W4] [ASSIGN] Task 103 e=1
+[10:00:17.554] [W4] [COMPUTE] Task 103 e=1 s0=1 partial=0
+[10:00:18.082] [W4] [RESULT] Task 103 e=1 v=6204
+[10:00:18.082] [W4] [ACK] Task 103
+[10:00:18.083] [W4] [ASSIGN] Task 114 e=1
+[10:00:18.083] [W4] [COMPUTE] Task 114 e=1 s0=1 partial=0
+[10:00:18.608] [W4] [RESULT] Task 114 e=1 v=6157
+[10:00:18.608] [W4] [ACK] Task 114
+[10:00:18.608] [W4] [ASSIGN] Task 122 e=1
+[10:00:18.608] [W4] [COMPUTE] Task 122 e=1 s0=1 partial=0
+[10:00:19.135] [W4] [RESULT] Task 122 e=1 v=6150
+[10:00:19.135] [W4] [ACK] Task 122
+[10:00:19.135] [W4] [ASSIGN] Task 131 e=1
+[10:00:19.136] [W4] [COMPUTE] Task 131 e=1 s0=1 partial=0
+[10:00:19.663] [W4] [RESULT] Task 131 e=1 v=6120
+[10:00:19.664] [W4] [ACK] Task 131
+[10:00:19.664] [W4] [ASSIGN] Task 143 e=1
+[10:00:19.664] [W4] [COMPUTE] Task 143 e=1 s0=1 partial=0
+[10:00:20.191] [W4] [RESULT] Task 143 e=1 v=6148
+[10:00:20.192] [W4] [ACK] Task 143
+[10:00:20.192] [W4] [ASSIGN] Task 151 e=1
+[10:00:20.192] [W4] [COMPUTE] Task 151 e=1 s0=1 partial=0
+[10:00:20.720] [W4] [RESULT] Task 151 e=1 v=6015
+[10:00:20.721] [W4] [ACK] Task 151
+[10:00:20.721] [W4] [ASSIGN] Task 162 e=1
+[10:00:20.721] [W4] [COMPUTE] Task 162 e=1 s0=1 partial=0
+[10:00:21.250] [W4] [RESULT] Task 162 e=1 v=6059
+[10:00:21.250] [W4] [ACK] Task 162
+[10:00:21.251] [W4] [ASSIGN] Task 172 e=1
+[10:00:21.251] [W4] [COMPUTE] Task 172 e=1 s0=1 partial=0
+[10:00:21.775] [W4] [RESULT] Task 172 e=1 v=6030
+[10:00:21.776] [W4] [ACK] Task 172
+[10:00:21.776] [W4] [ASSIGN] Task 182 e=1
+[10:00:21.776] [W4] [COMPUTE] Task 182 e=1 s0=1 partial=0
+[10:00:22.304] [W4] [RESULT] Task 182 e=1 v=6062
+[10:00:22.305] [W4] [ACK] Task 182
+[10:00:22.305] [W4] [ASSIGN] Task 191 e=1
+[10:00:22.305] [W4] [COMPUTE] Task 191 e=1 s0=1 partial=0
+[10:00:22.833] [W4] [RESULT] Task 191 e=1 v=5965
+[10:00:22.833] [W4] [ACK] Task 191
+[10:00:22.834] [W4] [ASSIGN] Task 201 e=1
+[10:00:22.834] [W4] [COMPUTE] Task 201 e=1 s0=1 partial=0
+[10:00:23.361] [W4] [RESULT] Task 201 e=1 v=5936
+[10:00:23.362] [W4] [ACK] Task 201
+[10:00:23.362] [W4] [ASSIGN] Task 211 e=1
+[10:00:23.362] [W4] [COMPUTE] Task 211 e=1 s0=1 partial=0
+[10:00:23.889] [W4] [RESULT] Task 211 e=1 v=5914
+[10:00:23.889] [W4] [ACK] Task 211
+[10:00:23.890] [W4] [ASSIGN] Task 220 e=1
+[10:00:23.890] [W4] [COMPUTE] Task 220 e=1 s0=1 partial=0
+[10:00:24.416] [W4] [RESULT] Task 220 e=1 v=5887
+[10:00:24.417] [W4] [ACK] Task 220
+[10:00:24.417] [W4] [ASSIGN] Task 230 e=1
+[10:00:24.417] [W4] [COMPUTE] Task 230 e=1 s0=1 partial=0
+[10:00:24.945] [W4] [RESULT] Task 230 e=1 v=5923
+[10:00:24.946] [W4] [ACK] Task 230
+[10:00:24.946] [W4] [ASSIGN] Task 242 e=1
+[10:00:24.946] [W4] [COMPUTE] Task 242 e=1 s0=1 partial=0
+[10:00:25.475] [W4] [RESULT] Task 242 e=1 v=5933
+[10:00:25.475] [W4] [ACK] Task 242
+[10:00:25.476] [W4] [ASSIGN] Task 254 e=1
+[10:00:25.476] [W4] [COMPUTE] Task 254 e=1 s0=1 partial=0
+[10:00:26.005] [W4] [RESULT] Task 254 e=1 v=5853
+[10:00:26.005] [W4] [ACK] Task 254
+[10:00:26.006] [W4] [ASSIGN] Task 265 e=1
+[10:00:26.006] [W4] [COMPUTE] Task 265 e=1 s0=1 partial=0
+[10:00:26.535] [W4] [RESULT] Task 265 e=1 v=5883
+[10:00:26.535] [W4] [ACK] Task 265
+[10:00:26.536] [W4] [ASSIGN] Task 274 e=1
+[10:00:26.536] [W4] [COMPUTE] Task 274 e=1 s0=1 partial=0
+[10:00:27.064] [W4] [RESULT] Task 274 e=1 v=5799
+[10:00:27.065] [W4] [ACK] Task 274
+[10:00:27.066] [W4] [ASSIGN] Task 287 e=1
+[10:00:27.066] [W4] [COMPUTE] Task 287 e=1 s0=1 partial=0
+[10:00:27.386] [W4] [CRASH] gen=1
+[10:00:40.570] [W4] [RESTART] -> REJOINING
+[10:00:40.571] [W4] [WELCOME] -> RUNNING
+[10:00:40.572] [W4] [ASSIGN] Task 502 e=1
+[10:00:40.572] [W4] [COMPUTE] Task 502 e=1 s0=1 partial=0
+[10:00:41.102] [W4] [RESULT] Task 502 e=1 v=5652
+[10:00:41.102] [W4] [ACK] Task 502
+[10:00:41.103] [W4] [ASSIGN] Task 511 e=1
+[10:00:41.103] [W4] [COMPUTE] Task 511 e=1 s0=1 partial=0
+[10:00:41.634] [W4] [RESULT] Task 511 e=1 v=5630
+[10:00:41.634] [W4] [ACK] Task 511
+[10:00:41.634] [W4] [ASSIGN] Task 520 e=1
+[10:00:41.634] [W4] [COMPUTE] Task 520 e=1 s0=1 partial=0
+[10:00:42.165] [W4] [RESULT] Task 520 e=1 v=5663
+[10:00:42.165] [W4] [ACK] Task 520
+[10:00:42.165] [W4] [ASSIGN] Task 529 e=1
+[10:00:42.165] [W4] [COMPUTE] Task 529 e=1 s0=1 partial=0
+[10:00:42.696] [W4] [RESULT] Task 529 e=1 v=5621
+[10:00:42.696] [W4] [ACK] Task 529
+[10:00:42.696] [W4] [ASSIGN] Task 538 e=1
+[10:00:42.696] [W4] [COMPUTE] Task 538 e=1 s0=1 partial=0
+[10:00:43.226] [W4] [RESULT] Task 538 e=1 v=5628
+[10:00:43.227] [W4] [ACK] Task 538
+[10:00:43.227] [W4] [ASSIGN] Task 546 e=1
+[10:00:43.227] [W4] [COMPUTE] Task 546 e=1 s0=1 partial=0
+[10:00:43.763] [W4] [RESULT] Task 546 e=1 v=5617
+[10:00:43.763] [W4] [ACK] Task 546
+[10:00:43.764] [W4] [ASSIGN] Task 554 e=1
+[10:00:43.764] [W4] [COMPUTE] Task 554 e=1 s0=1 partial=0
+[10:00:44.292] [W4] [RESULT] Task 554 e=1 v=5608
+[10:00:44.292] [W4] [ACK] Task 554
+[10:00:44.293] [W4] [ASSIGN] Task 562 e=1
+[10:00:44.293] [W4] [COMPUTE] Task 562 e=1 s0=1 partial=0
+[10:00:44.823] [W4] [RESULT] Task 562 e=1 v=5557
+[10:00:44.823] [W4] [ACK] Task 562
+[10:00:44.824] [W4] [ASSIGN] Task 570 e=1
+[10:00:44.824] [W4] [COMPUTE] Task 570 e=1 s0=1 partial=0
+[10:00:45.356] [W4] [RESULT] Task 570 e=1 v=5603
+[10:00:45.356] [W4] [ACK] Task 570
+[10:00:45.357] [W4] [ASSIGN] Task 578 e=1
+[10:00:45.357] [W4] [COMPUTE] Task 578 e=1 s0=1 partial=0
+[10:00:45.887] [W4] [RESULT] Task 578 e=1 v=5570
+[10:00:45.887] [W4] [ACK] Task 578
+[10:00:45.888] [W4] [ASSIGN] Task 586 e=1
+[10:00:45.888] [W4] [COMPUTE] Task 586 e=1 s0=1 partial=0
+[10:00:46.419] [W4] [RESULT] Task 586 e=1 v=5578
+[10:00:46.419] [W4] [ACK] Task 586
+[10:00:46.420] [W4] [ASSIGN] Task 594 e=1
+[10:00:46.420] [W4] [COMPUTE] Task 594 e=1 s0=1 partial=0
+[10:00:46.951] [W4] [RESULT] Task 594 e=1 v=5620
+[10:00:46.952] [W4] [ACK] Task 594
+[10:00:46.952] [W4] [ASSIGN] Task 602 e=1
+[10:00:46.952] [W4] [COMPUTE] Task 602 e=1 s0=1 partial=0
+[10:00:47.486] [W4] [RESULT] Task 602 e=1 v=5596
+[10:00:47.486] [W4] [ACK] Task 602
+[10:00:47.486] [W4] [ASSIGN] Task 610 e=1
+[10:00:47.486] [W4] [COMPUTE] Task 610 e=1 s0=1 partial=0
+[10:00:48.017] [W4] [RESULT] Task 610 e=1 v=5524
+[10:00:48.017] [W4] [ACK] Task 610
+[10:00:48.017] [W4] [ASSIGN] Task 617 e=1
+[10:00:48.018] [W4] [COMPUTE] Task 617 e=1 s0=1 partial=0
+[10:00:48.548] [W4] [RESULT] Task 617 e=1 v=5553
+[10:00:48.548] [W4] [ACK] Task 617
+[10:00:48.549] [W4] [ASSIGN] Task 625 e=1
+[10:00:48.549] [W4] [COMPUTE] Task 625 e=1 s0=1 partial=0
+[10:00:49.079] [W4] [RESULT] Task 625 e=1 v=5528
+[10:00:49.079] [W4] [ACK] Task 625
+[10:00:49.080] [W4] [ASSIGN] Task 634 e=1
+[10:00:49.080] [W4] [COMPUTE] Task 634 e=1 s0=1 partial=0
+[10:00:49.612] [W4] [RESULT] Task 634 e=1 v=5601
+[10:00:49.613] [W4] [ACK] Task 634
+[10:00:49.613] [W4] [ASSIGN] Task 643 e=1
+[10:00:49.613] [W4] [COMPUTE] Task 643 e=1 s0=1 partial=0
+[10:00:50.145] [W4] [RESULT] Task 643 e=1 v=5542
+[10:00:50.146] [W4] [ACK] Task 643
+[10:00:50.146] [W4] [ASSIGN] Task 652 e=1
+[10:00:50.146] [W4] [COMPUTE] Task 652 e=1 s0=1 partial=0
+[10:00:50.678] [W4] [RESULT] Task 652 e=1 v=5564
+[10:00:50.678] [W4] [ACK] Task 652
+[10:00:50.678] [W4] [ASSIGN] Task 661 e=1
+[10:00:50.679] [W4] [COMPUTE] Task 661 e=1 s0=1 partial=0
+[10:00:51.211] [W4] [RESULT] Task 661 e=1 v=5574
+[10:00:51.211] [W4] [ACK] Task 661
+[10:00:51.211] [W4] [ASSIGN] Task 670 e=1
+[10:00:51.211] [W4] [COMPUTE] Task 670 e=1 s0=1 partial=0
+[10:00:51.746] [W4] [RESULT] Task 670 e=1 v=5529
+[10:00:51.747] [W4] [ACK] Task 670
+[10:00:51.747] [W4] [ASSIGN] Task 679 e=1
+[10:00:51.747] [W4] [COMPUTE] Task 679 e=1 s0=1 partial=0
+[10:00:52.275] [W4] [RESULT] Task 679 e=1 v=5575
+[10:00:52.276] [W4] [ACK] Task 679
+[10:00:52.276] [W4] [ASSIGN] Task 688 e=1
+[10:00:52.276] [W4] [COMPUTE] Task 688 e=1 s0=1 partial=0
+[10:00:52.806] [W4] [RESULT] Task 688 e=1 v=5532
+[10:00:52.806] [W4] [ACK] Task 688
+[10:00:52.806] [W4] [ASSIGN] Task 697 e=1
+[10:00:52.806] [W4] [COMPUTE] Task 697 e=1 s0=1 partial=0
+[10:00:53.336] [W4] [RESULT] Task 697 e=1 v=5549
+[10:00:53.336] [W4] [ACK] Task 697
+[10:00:53.336] [W4] [ASSIGN] Task 706 e=1
+[10:00:53.336] [W4] [COMPUTE] Task 706 e=1 s0=1 partial=0
+[10:00:53.867] [W4] [RESULT] Task 706 e=1 v=5457
+[10:00:53.867] [W4] [ACK] Task 706
+[10:00:53.868] [W4] [ASSIGN] Task 715 e=1
+[10:00:53.868] [W4] [COMPUTE] Task 715 e=1 s0=1 partial=0
+[10:00:54.398] [W4] [RESULT] Task 715 e=1 v=5578
+[10:00:54.399] [W4] [ACK] Task 715
+[10:00:54.399] [W4] [ASSIGN] Task 724 e=1
+[10:00:54.399] [W4] [COMPUTE] Task 724 e=1 s0=1 partial=0
+[10:00:54.930] [W4] [RESULT] Task 724 e=1 v=5479
+[10:00:54.930] [W4] [ACK] Task 724
+[10:00:54.931] [W4] [ASSIGN] Task 732 e=1
+[10:00:54.931] [W4] [COMPUTE] Task 732 e=1 s0=1 partial=0
+[10:00:55.464] [W4] [RESULT] Task 732 e=1 v=5518
+[10:00:55.464] [W4] [ACK] Task 732
+[10:00:55.464] [W4] [ASSIGN] Task 741 e=1
+[10:00:55.464] [W4] [COMPUTE] Task 741 e=1 s0=1 partial=0
+[10:00:56.002] [W4] [RESULT] Task 741 e=1 v=5518
+[10:00:56.002] [W4] [ACK] Task 741
+[10:00:56.003] [W4] [ASSIGN] Task 750 e=1
+[10:00:56.003] [W4] [COMPUTE] Task 750 e=1 s0=1 partial=0
+[10:00:56.533] [W4] [RESULT] Task 750 e=1 v=5506
+[10:00:56.534] [W4] [ACK] Task 750
+[10:00:56.534] [W4] [ASSIGN] Task 759 e=1
+[10:00:56.534] [W4] [COMPUTE] Task 759 e=1 s0=1 partial=0
+[10:00:57.065] [W4] [RESULT] Task 759 e=1 v=5555
+[10:00:57.065] [W4] [ACK] Task 759
+[10:00:57.065] [W4] [ASSIGN] Task 768 e=1
+[10:00:57.066] [W4] [COMPUTE] Task 768 e=1 s0=1 partial=0
+[10:00:57.594] [W4] [RESULT] Task 768 e=1 v=5533
+[10:00:57.594] [W4] [ACK] Task 768
+[10:00:57.595] [W4] [ASSIGN] Task 777 e=1
+[10:00:57.595] [W4] [COMPUTE] Task 777 e=1 s0=1 partial=0
+[10:00:58.127] [W4] [RESULT] Task 777 e=1 v=5520
+[10:00:58.127] [W4] [ACK] Task 777
+[10:00:58.128] [W4] [ASSIGN] Task 786 e=1
+[10:00:58.128] [W4] [COMPUTE] Task 786 e=1 s0=1 partial=0
+[10:00:58.659] [W4] [RESULT] Task 786 e=1 v=5447
+[10:00:58.659] [W4] [ACK] Task 786
+[10:00:58.659] [W4] [ASSIGN] Task 795 e=1
+[10:00:58.659] [W4] [COMPUTE] Task 795 e=1 s0=1 partial=0
+[10:00:59.192] [W4] [RESULT] Task 795 e=1 v=5468
+[10:00:59.192] [W4] [ACK] Task 795
+[10:00:59.192] [W4] [ASSIGN] Task 804 e=1
+[10:00:59.193] [W4] [COMPUTE] Task 804 e=1 s0=1 partial=0
+[10:00:59.722] [W4] [RESULT] Task 804 e=1 v=5537
+[10:00:59.722] [W4] [ACK] Task 804
+[10:00:59.722] [W4] [ASSIGN] Task 813 e=1
+[10:00:59.723] [W4] [COMPUTE] Task 813 e=1 s0=1 partial=0
+[10:01:00.253] [W4] [RESULT] Task 813 e=1 v=5473
+[10:01:00.253] [W4] [ACK] Task 813
+[10:01:00.253] [W4] [ASSIGN] Task 822 e=1
+[10:01:00.254] [W4] [COMPUTE] Task 822 e=1 s0=1 partial=0
+[10:01:00.788] [W4] [RESULT] Task 822 e=1 v=5428
+[10:01:00.788] [W4] [ACK] Task 822
+[10:01:00.788] [W4] [ASSIGN] Task 831 e=1
+[10:01:00.789] [W4] [COMPUTE] Task 831 e=1 s0=1 partial=0
+[10:01:01.319] [W4] [RESULT] Task 831 e=1 v=5422
+[10:01:01.319] [W4] [ACK] Task 831
+[10:01:01.319] [W4] [ASSIGN] Task 840 e=1
+[10:01:01.320] [W4] [COMPUTE] Task 840 e=1 s0=1 partial=0
+[10:01:01.849] [W4] [RESULT] Task 840 e=1 v=5382
+[10:01:01.850] [W4] [ACK] Task 840
+[10:01:01.850] [W4] [ASSIGN] Task 849 e=1
+[10:01:01.850] [W4] [COMPUTE] Task 849 e=1 s0=1 partial=0
+[10:01:02.382] [W4] [RESULT] Task 849 e=1 v=5485
+[10:01:02.382] [W4] [ACK] Task 849
+[10:01:02.382] [W4] [ASSIGN] Task 858 e=1
+[10:01:02.382] [W4] [COMPUTE] Task 858 e=1 s0=1 partial=0
+[10:01:02.912] [W4] [RESULT] Task 858 e=1 v=5482
+[10:01:02.912] [W4] [ACK] Task 858
+[10:01:02.913] [W4] [ASSIGN] Task 867 e=1
+[10:01:02.913] [W4] [COMPUTE] Task 867 e=1 s0=1 partial=0
+[10:01:03.447] [W4] [RESULT] Task 867 e=1 v=5488
+[10:01:03.447] [W4] [ACK] Task 867
+[10:01:03.447] [W4] [ASSIGN] Task 876 e=1
+[10:01:03.448] [W4] [COMPUTE] Task 876 e=1 s0=1 partial=0
+[10:01:03.979] [W4] [ACK] Task 876
+[10:01:03.979] [W4] [RESULT] Task 876 e=1 v=5462
+[10:01:03.980] [W4] [ASSIGN] Task 885 e=1
+[10:01:03.980] [W4] [COMPUTE] Task 885 e=1 s0=1 partial=0
+[10:01:04.511] [W4] [RESULT] Task 885 e=1 v=5361
+[10:01:04.511] [W4] [ACK] Task 885
+[10:01:04.512] [W4] [ASSIGN] Task 894 e=1
+[10:01:04.512] [W4] [COMPUTE] Task 894 e=1 s0=1 partial=0
+[10:01:05.047] [W4] [RESULT] Task 894 e=1 v=5456
+[10:01:05.048] [W4] [ACK] Task 894
+[10:01:05.048] [W4] [ASSIGN] Task 902 e=1
+[10:01:05.048] [W4] [COMPUTE] Task 902 e=1 s0=1 partial=0
+[10:01:05.579] [W4] [RESULT] Task 902 e=1 v=5466
+[10:01:05.579] [W4] [ACK] Task 902
+[10:01:05.580] [W4] [ASSIGN] Task 910 e=1
+[10:01:05.580] [W4] [COMPUTE] Task 910 e=1 s0=1 partial=0
+[10:01:06.112] [W4] [RESULT] Task 910 e=1 v=5444
+[10:01:06.112] [W4] [ACK] Task 910
+[10:01:06.113] [W4] [ASSIGN] Task 918 e=1
+[10:01:06.113] [W4] [COMPUTE] Task 918 e=1 s0=1 partial=0
+[10:01:06.644] [W4] [RESULT] Task 918 e=1 v=5368
+[10:01:06.644] [W4] [ACK] Task 918
+[10:01:06.645] [W4] [ASSIGN] Task 926 e=1
+[10:01:06.645] [W4] [COMPUTE] Task 926 e=1 s0=1 partial=0
+[10:01:07.179] [W4] [RESULT] Task 926 e=1 v=5501
+[10:01:07.179] [W4] [ACK] Task 926
+[10:01:07.180] [W4] [ASSIGN] Task 934 e=1
+[10:01:07.180] [W4] [COMPUTE] Task 934 e=1 s0=1 partial=0
+[10:01:07.707] [W4] [RESULT] Task 934 e=1 v=5428
+[10:01:07.707] [W4] [ACK] Task 934
+[10:01:07.708] [W4] [ASSIGN] Task 942 e=1
+[10:01:07.708] [W4] [COMPUTE] Task 942 e=1 s0=1 partial=0
+[10:01:08.240] [W4] [RESULT] Task 942 e=1 v=5469
+[10:01:08.241] [W4] [ACK] Task 942
+[10:01:08.241] [W4] [ASSIGN] Task 950 e=1
+[10:01:08.241] [W4] [COMPUTE] Task 950 e=1 s0=1 partial=0
+[10:01:08.775] [W4] [RESULT] Task 950 e=1 v=5395
+[10:01:08.775] [W4] [ACK] Task 950
+[10:01:08.775] [W4] [ASSIGN] Task 958 e=1
+[10:01:08.775] [W4] [COMPUTE] Task 958 e=1 s0=1 partial=0
+[10:01:09.309] [W4] [RESULT] Task 958 e=1 v=5483
+[10:01:09.309] [W4] [ACK] Task 958
+[10:01:09.310] [W4] [ASSIGN] Task 966 e=1
+[10:01:09.310] [W4] [COMPUTE] Task 966 e=1 s0=1 partial=0
+[10:01:09.842] [W4] [RESULT] Task 966 e=1 v=5513
+[10:01:09.843] [W4] [ACK] Task 966
+[10:01:09.843] [W4] [ASSIGN] Task 975 e=1
+[10:01:09.844] [W4] [COMPUTE] Task 975 e=1 s0=1 partial=0
+[10:01:10.375] [W4] [RESULT] Task 975 e=1 v=5497
+[10:01:10.375] [W4] [ACK] Task 975
+[10:01:10.375] [W4] [ASSIGN] Task 984 e=1
+[10:01:10.376] [W4] [COMPUTE] Task 984 e=1 s0=1 partial=0
+[10:01:10.907] [W4] [RESULT] Task 984 e=1 v=5416
+[10:01:10.908] [W4] [ACK] Task 984
+[10:01:10.908] [W4] [ASSIGN] Task 993 e=1
+[10:01:10.908] [W4] [COMPUTE] Task 993 e=1 s0=1 partial=0
+[10:01:11.435] [W4] [RESULT] Task 993 e=1 v=5453
+[10:01:11.436] [W4] [ACK] Task 993
+[10:01:11.436] [W4] [NO_TASK] 
+[10:01:11.703] [W4] [BYE] received
+[10:01:11.704] [W4] [TERMINATE] tasks=86 ckpt_sent=780 ckpt_recv=646 crashes=1 ack=86 reject=0

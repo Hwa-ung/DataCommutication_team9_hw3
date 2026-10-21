@@ -1,0 +1,4 @@
+[10:21:36.202] [W10] [INIT] id=10 peer_port=7010 step_delay=100ms small_primes=1229
+[10:21:36.206] [W10] [HELLO] sent (127.0.0.1:7010)
+[10:21:37.079] [W10] [LAUNCHER] control connected
+[10:22:07.761] [W10] [ERROR] disconnected before RING
