@@ -25,8 +25,8 @@ def _ts():
 def L(tag, msg):
     line = f"[{_ts()}] [LAUNCHER] [{tag}] {msg}"
     print(line, flush=True)
-    if logf:
-        with logL:
+    with logL:
+        if logf:
             logf.write(line + '\n')
             logf.flush()
 
@@ -53,18 +53,84 @@ def recv_lines_nb(sock, buf):
 def connect_ctrl(wid, port, retries=40):
     """Connect to worker's peer port, send LAUNCHER."""
     for _ in range(retries):
+        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         try:
-            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(2.0)
             s.connect(('127.0.0.1', port))
             s.sendall(b"LAUNCHER\n")
             s.setblocking(False)
             return s
         except (ConnectionRefusedError, OSError):
+            s.close()
             time.sleep(0.5)
     L("ERROR", f"cannot connect to W{wid} port {port}")
     return None
 
-def main():
+def close_control(wid):
+    sock = ctrl_socks.pop(wid, None)
+    if sock is not None:
+        sock2wid.pop(sock, None)
+        sock.close()
+    ctrl_bufs.pop(wid, None)
+    restart_at.pop(wid, None)
+    status[wid] = 'EXITED'
+
+
+def wait_for_ready(timeout=60.0):
+    """Wait for distinct workers, failing on EOF or a stalled startup."""
+    ready = set()
+    deadline = time.monotonic() + timeout
+    while len(ready) < N_W:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise TimeoutError(f'READY timeout: {len(ready)}/{N_W} workers')
+        socks = list(ctrl_socks.values())
+        if not socks:
+            raise RuntimeError('all control connections closed before READY')
+        rd, _, _ = select.select(socks, [], [], min(1.0, remaining))
+        for sock in rd:
+            wid = sock2wid[sock]
+            lines = recv_lines_nb(sock, ctrl_bufs[wid])
+            if lines is None:
+                close_control(wid)
+                raise RuntimeError(f'W{wid} disconnected before all workers were READY')
+            for line in lines:
+                if line.split() == ['READY', str(wid)] and wid not in ready:
+                    ready.add(wid)
+                    L('READY', f'W{wid} [{len(ready)}/{N_W}]')
+
+
+def send_control(wid, message):
+    sock = ctrl_socks[wid]
+    try:
+        sock.settimeout(2.0)
+        sock.sendall((message + '\n').encode())
+    except OSError as exc:
+        raise RuntimeError(f'W{wid} control send failed: {message}') from exc
+    finally:
+        sock.setblocking(False)
+
+
+def cleanup():
+    global logf
+    for wid in list(ctrl_socks):
+        close_control(wid)
+    for proc in procs.values():
+        if proc.poll() is None:
+            proc.terminate()
+    for proc in procs.values():
+        try:
+            proc.wait(timeout=3)
+        except subprocess.TimeoutExpired:
+            proc.kill()
+            proc.wait()
+    with logL:
+        if logf:
+            logf.close()
+            logf = None
+
+
+def run():
     global logf
     ap = argparse.ArgumentParser(description="HW#3 Chaos Launcher")
     ap.add_argument('--coord-ip', required=True)
@@ -74,6 +140,8 @@ def main():
     ap.add_argument('--log-dir', default='logs')
     ap.add_argument('--peer-ip', default='127.0.0.1')
     args = ap.parse_args()
+    if args.step_delay < 0:
+        ap.error('--step-delay must be non-negative')
 
     os.makedirs(args.log_dir, exist_ok=True)
     logf = open(os.path.join(args.log_dir, 'launcher.log'), 'w', encoding='utf-8')
@@ -101,8 +169,7 @@ def main():
     for i in range(1, N_W + 1):
         s = connect_ctrl(i, 7000 + i)
         if s is None:
-            L("ERROR", f"W{i} control connect failed")
-            return
+            raise RuntimeError(f'W{i} control connect failed')
         ctrl_socks[i] = s
         ctrl_bufs[i] = bytearray()
         sock2wid[s] = i
@@ -110,30 +177,9 @@ def main():
     L("CTRL", "all 10 control connections established")
 
     # --- Wait for 10 READY ---
-    ready_count = 0
-    while ready_count < N_W:
-        socks = [s for s in ctrl_socks.values()]
-        if not socks:
-            break
-        try:
-            rd, _, _ = select.select(socks, [], [], 1.0)
-        except Exception:
-            continue
-        for s in rd:
-            wid = sock2wid.get(s)
-            if wid is None:
-                continue
-            lines = recv_lines_nb(s, ctrl_bufs[wid])
-            if lines is None:
-                status[wid] = 'EXITED'
-                continue
-            for line in lines:
-                parts = line.split()
-                if parts[0] == 'READY':
-                    ready_count += 1
-                    L("READY", f"W{int(parts[1])} [{ready_count}/{N_W}]")
+    wait_for_ready()
 
-    G.t0 = time.time()
+    G.t0 = time.monotonic()
     L("T0", f"all {N_W} workers READY - t0 set")
 
     # --- Schedule crashes ---
@@ -142,7 +188,10 @@ def main():
     crash_no = 0
 
     while True:
-        now = time.time()
+        now = time.monotonic()
+        for wid, proc in procs.items():
+            if proc.poll() not in (None, 0):
+                raise RuntimeError(f'W{wid} exited with code {proc.returncode}')
 
         # Check all exited
         if all(s == 'EXITED' for s in status.values()):
@@ -162,29 +211,28 @@ def main():
                 lines = recv_lines_nb(s, ctrl_bufs[wid])
                 if lines is None:
                     # EOF
-                    status[wid] = 'EXITED'
-                    restart_at.pop(wid, None)
+                    close_control(wid)
                     L("EXITED", f"W{wid}")
                     continue
                 for line in lines:
                     parts = line.split()
-                    if parts[0] == 'REJOINED':
+                    if parts == ['REJOINED', str(wid)]:
                         rwid = int(parts[1])
                         status[rwid] = 'RUNNING'
                         L("REJOINED", f"W{rwid}")
                         # update event record
                         for ev in reversed(events):
                             if ev['victim'] == rwid and ev.get('rejoined_t') is None:
-                                ev['rejoined_t'] = time.time()
+                                ev['rejoined_t'] = time.monotonic()
                                 ev['down'] = ev['rejoined_t'] - ev['crash_t']
                                 break
                         if blocked:
                             blocked = False
-                            next_crash = time.time() + rng.uniform(5, 15)
+                            next_crash = time.monotonic() + rng.uniform(5, 15)
                             if next_crash - G.t0 >= 80:
                                 next_crash = None
 
-        now = time.time()
+        now = time.monotonic()
 
         # Process restart timers
         for wid in list(restart_at):
@@ -192,10 +240,7 @@ def main():
                 restart_at.pop(wid, None)
                 continue
             if now >= restart_at[wid]:
-                try:
-                    ctrl_socks[wid].sendall(b"RESTART\n")
-                except OSError:
-                    pass
+                send_control(wid, 'RESTART')
                 status[wid] = 'REJOINING'
                 del restart_at[wid]
                 L("RESTART", f"W{wid}")
@@ -211,10 +256,7 @@ def main():
                 if running_w:
                     crash_no += 1
                     victim = rng.choice(running_w)
-                    try:
-                        ctrl_socks[victim].sendall(b"CRASH\n")
-                    except OSError:
-                        pass
+                    send_control(victim, 'CRASH')
                     status[victim] = 'CRASHED'
                     D = rng.uniform(10, 15)
                     restart_at[victim] = now + D
@@ -240,6 +282,8 @@ def main():
     for i in range(1, N_W + 1):
         if procs[i].poll() is None:
             procs[i].wait(timeout=60)
+        if procs[i].returncode != 0:
+            raise RuntimeError(f'W{i} exited with code {procs[i].returncode}')
 
     # --- Write event log ---
     L("EVENTS", f"total crashes: {len(events)}")
@@ -250,8 +294,19 @@ def main():
           f"D={ev['D']:.1f}s restart={ev['restart_t']-G.t0:.1f}s rejoined={rj} down={dn}")
 
     L("TERMINATE", "Launcher done")
-    if logf:
-        logf.close()
+
+
+def main():
+    try:
+        run()
+        return 0
+    except (RuntimeError, OSError, subprocess.TimeoutExpired) as exc:
+        L('ERROR', str(exc))
+        return 1
+    except KeyboardInterrupt:
+        return 130
+    finally:
+        cleanup()
 
 if __name__ == '__main__':
-    main()
+    sys.exit(main())

@@ -55,8 +55,8 @@ def _ts():
 def L(tag, msg):
     line = f"[{_ts()}] [{tag}] {msg}"
     print(line, flush=True)
-    if logf:
-        with logL:
+    with logL:
+        if logf:
             logf.write(line + '\n')
             logf.flush()
 
@@ -67,10 +67,19 @@ def _send(wid, msg):
         return
     data = (msg + '\n').encode()
     with w.slock:
+        sock = w.sock
+        if sock is None:
+            return
         try:
-            w.sock.sendall(data)
+            sock.sendall(data)
         except OSError:
             L("WARN", f"send W{wid} fail: {msg[:60]}")
+            # A timed-out send may have written only part of the frame.
+            # Drop the connection so heartbeats stop and tasks are recovered.
+            try:
+                sock.shutdown(socket.SHUT_RDWR)
+            except OSError:
+                pass
 
 # ===================== Listener =====================
 def listener_thread(srv):
@@ -85,7 +94,9 @@ def listener_thread(srv):
             if s is srv:
                 try:
                     c, _ = srv.accept()
-                    c.setblocking(False)
+                    # select() gates reads; bounded blocking sends avoid silently
+                    # dropping part of a line on non-blocking sendall().
+                    c.settimeout(2.0)
                     socks.append(c)
                     rbufs[c] = bytearray()
                 except OSError:
@@ -102,7 +113,10 @@ def listener_thread(srv):
                 if s in socks:
                     socks.remove(s)
                 rbufs.pop(s, None)
-                s2w.pop(s, None)
+                with wl:
+                    wid = s2w.pop(s, None)
+                    if wid in wk and wk[wid].sock is s:
+                        wk[wid].sock = None
                 try: s.close()
                 except: pass
                 continue
@@ -125,11 +139,11 @@ def listener_thread(srv):
                         continue
                     with wl:
                         w = wk.get(wid)
-                        if w and w.state in (ALIVE, SUSPECT):
+                        if w and w.sock is s and s2w.get(s) == wid and w.state in (ALIVE, SUSPECT):
                             if w.state == SUSPECT:
                                 L("FD", f"W{wid} SUSPECT->ALIVE (HB)")
                                 w.state = ALIVE
-                            w.lastHB = time.time()
+                            w.lastHB = time.monotonic()
                 else:
                     with rqcv:
                         rq.append((s, msg))
@@ -153,10 +167,10 @@ def dispatcher_thread(did):
         cmd = parts[0]
         try:
             if   cmd == 'HELLO':    _on_hello(sock, parts, did)
-            elif cmd == 'RING_OK':  _on_ring_ok(parts, did)
+            elif cmd == 'RING_OK':  _on_ring_ok(sock, parts, did)
             elif cmd == 'REQ':      _on_req(sock, parts, did)
             elif cmd == 'RESULT':   _on_result(sock, parts, did)
-            elif cmd == 'REJOIN':   _on_rejoin(parts, did)
+            elif cmd == 'REJOIN':   _on_rejoin(sock, parts, did)
             else:
                 L("WARN", f"D{did} unknown cmd: {msg[:80]}")
         except Exception as e:
@@ -168,11 +182,13 @@ def _on_hello(sock, parts, did):
     if len(parts) < 4:
         return
     wid = int(parts[1]); ip = parts[2]; port = int(parts[3])
-    if wid < 1 or wid > N_W:
+    if wid < 1 or wid > N_W or not 1 <= port <= 65535:
         return
     ring_msgs = None
     with wl:
         if t0 is not None:
+            return
+        if sock in s2w:
             return
         if wid in wk and wk[wid].sock is not None:
             return
@@ -181,7 +197,7 @@ def _on_hello(sock, parts, did):
         w = wk[wid]
         w.sock = sock; w.pip = ip; w.pport = port
         s2w[sock] = wid
-        n_hello += 1
+        n_hello = sum(entry.sock is not None for entry in wk.values())
         L("HELLO", f"W{wid} ({ip}:{port}) [{n_hello}/{N_W}]")
         if n_hello == N_W:
             ring_msgs = []
@@ -195,19 +211,19 @@ def _on_hello(sock, parts, did):
         L("RING", f"sent RING to all {N_W} workers")
 
 # --- RING_OK ---
-def _on_ring_ok(parts, did):
+def _on_ring_ok(sock, parts, did):
     global n_rok, t0
     wid = int(parts[1])
     do_start = False
     with wl:
         w = wk.get(wid)
-        if not w or w.rok:
+        if not w or w.sock is not sock or s2w.get(sock) != wid or w.rok:
             return
         w.rok = True
         n_rok += 1
         L("RING_OK", f"W{wid} [{n_rok}/{N_W}]")
         if n_rok == N_W:
-            t0 = time.time()
+            t0 = time.monotonic()
             for i in range(1, N_W + 1):
                 wk[i].lastHB = t0
             do_start = True
@@ -224,7 +240,9 @@ def _on_req(sock, parts, did):
     action = None; k = -1
     with wl:
         w = wk.get(wid)
-        if not w or w.state == DEAD:
+        if not w or w.sock is not sock or s2w.get(sock) != wid:
+            return
+        if w.state == DEAD:
             L("WARN", f"D{did} REQ W{wid} DEAD/missing")
             return
         if not pq:
@@ -249,35 +267,35 @@ def _on_result(sock, parts, did):
     if len(parts) < 4:
         return
     k = int(parts[1]); e = int(parts[2]); v = int(parts[3])
-    wid = s2w.get(sock)
-    if wid is None:
-        L("WARN", f"D{did} RESULT unknown sock")
+    if not 0 <= k < N_T or e < 1 or not 0 <= v <= 100_000:
+        L("WARN", f"D{did} invalid RESULT: {parts[1:]}")
         return
-    # (1) sender DEAD?
-    with wl:
-        w = wk.get(wid)
-        is_dead = (not w or w.state == DEAD)
-    if is_dead:
-        _send(wid, f"REJECT_STALE {k} DEAD")
-        L("REJECT", f"D{did} Task {k} W{wid} DEAD")
-        st_rej += 1
-        return
-    # (2)-(4) task lock
-    t = tasks[k]
+    # Keep worker status and task ownership stable through the commit decision.
+    # Lock order matches assignment and the failure detector: wl -> task.lock.
     reason = None
-    with t.lock:
-        if t.state == DONE:
-            reason = "DONE"
-        elif e != t.epoch or wid != t.owner:
-            reason = "EPOCH"
+    with wl:
+        wid = s2w.get(sock)
+        w = wk.get(wid)
+        if not w or w.sock is not sock:
+            return
+        if w.state == DEAD:
+            reason = "DEAD"
         else:
-            t.state = DONE
-            t.result = v
-            t.cc += 1
+            t = tasks[k]
+            with t.lock:
+                if t.state == DONE:
+                    reason = "DONE"
+                elif t.state != ASSIGNED or e != t.epoch or wid != t.owner:
+                    reason = "EPOCH"
+                else:
+                    t.state = DONE
+                    t.result = v
+                    t.cc += 1
+        if reason:
+            st_rej += 1
     if reason:
         _send(wid, f"REJECT_STALE {k} {reason}")
         L("REJECT", f"D{did} Task {k} e={e} W{wid} -> {reason}")
-        st_rej += 1
     else:
         with done_cv:
             done_n += 1
@@ -289,17 +307,25 @@ def _on_result(sock, parts, did):
         L("COMMIT", f"D{did} Task {k} e={e} W{wid} v={v} [{dn}/{N_T}]")
 
 # --- REJOIN ---
-def _on_rejoin(parts, did):
+def _on_rejoin(sock, parts, did):
     global st_rj
     wid = int(parts[1])
     action = None
+    recovered = []
     with wl:
         w = wk.get(wid)
-        if not w:
+        if not w or w.sock is not sock or s2w.get(sock) != wid:
             return
         if w.state == DEAD:
             w.state = ALIVE
-            w.lastHB = time.time()
+            w.lastHB = time.monotonic()
+            # If every worker was DEAD, no takeover target existed. The
+            # rejoining worker lost its local queue, so reissue its tasks.
+            for k, t in enumerate(tasks):
+                with t.lock:
+                    if t.state == ASSIGNED and t.owner == wid:
+                        t.epoch += 1
+                        recovered.append((k, t.epoch))
             w.rjc += 1
             action = 'WELCOME'
             st_rj += 1
@@ -309,6 +335,9 @@ def _on_rejoin(parts, did):
             L("REJOIN", f"D{did} W{wid} state={w.state} -> RETRY_LATER")
     if action == 'WELCOME':
         _send(wid, "WELCOME")
+        for k, e in recovered:
+            _send(wid, f"TAKEOVER {k} {e} {wid}")
+            L("RECOVER", f"Task {k} -> W{wid} e={e} after REJOIN")
     else:
         _send(wid, "RETRY_LATER")
 
@@ -317,16 +346,47 @@ def _next_alive(d):
     """Ring order, skip DEAD and SUSPECT. Fallback to SUSPECT. wl held."""
     for off in range(1, N_W):
         c = (d - 1 + off) % N_W + 1
-        if wk[c].state == ALIVE:
+        if c in wk and wk[c].sock is not None and wk[c].state == ALIVE:
             return c
     for off in range(1, N_W):
         c = (d - 1 + off) % N_W + 1
-        if wk[c].state == SUSPECT:
+        if c in wk and wk[c].sock is not None and wk[c].state == SUSPECT:
             return c
     return None
 
-def fd_thread():
+def check_failures(now):
+    """One detector pass, including tasks left without a live takeover target."""
     global st_dead, st_tk
+    takeover_msgs = []
+    with wl:
+        for i, w in wk.items():
+            gap = now - w.lastHB
+            if w.state == ALIVE and gap >= 3.0:
+                w.state = SUSPECT
+                L("FD", f"W{i} ->SUSPECT ({gap:.1f}s)")
+            if w.state in (ALIVE, SUSPECT) and gap >= 5.0:
+                w.state = DEAD
+                L("FD", f"W{i} ->DEAD ({gap:.1f}s)")
+                st_dead += 1
+        # Retry all DEAD owners on every pass, not just newly dead owners.
+        for k, t in enumerate(tasks):
+            with t.lock:
+                if t.state != ASSIGNED or wk[t.owner].state != DEAD:
+                    continue
+                d = t.owner
+                b = _next_alive(d)
+                if b is None:
+                    continue
+                t.epoch += 1
+                t.owner = b
+                takeover_msgs.append((b, k, t.epoch, d))
+    for b, k, e, d in takeover_msgs:
+        _send(b, f"TAKEOVER {k} {e} {d}")
+        L("TAKEOVER", f"Task {k} e={e} W{d}->W{b}")
+        st_tk += 1
+
+
+def fd_thread():
     last_pool = 0.0
     while t0 is None and not stop:
         time.sleep(0.1)
@@ -334,42 +394,8 @@ def fd_thread():
         time.sleep(1.0)
         if stop:
             break
-        now = time.time()
-        newly_dead = []
-        takeover_msgs = []
-        with wl:
-            # --- mark states ---
-            for i in range(1, N_W + 1):
-                w = wk.get(i)
-                if not w:
-                    continue
-                gap = now - w.lastHB
-                if w.state == ALIVE and gap >= 3.0:
-                    w.state = SUSPECT
-                    L("FD", f"W{i} ->SUSPECT ({gap:.1f}s)")
-                if w.state in (ALIVE, SUSPECT) and gap >= 5.0:
-                    w.state = DEAD
-                    newly_dead.append(i)
-                    L("FD", f"W{i} ->DEAD ({gap:.1f}s)")
-                    st_dead += 1
-            # --- takeover ---
-            for d in sorted(newly_dead):
-                b = _next_alive(d)
-                if b is None:
-                    L("ERROR", f"No target for W{d}")
-                    continue
-                for k in range(N_T):
-                    t = tasks[k]
-                    with t.lock:
-                        if t.state == ASSIGNED and t.owner == d:
-                            t.epoch += 1
-                            t.owner = b
-                            takeover_msgs.append((b, k, t.epoch, d))
-        # send outside lock
-        for b, k, e, d in takeover_msgs:
-            _send(b, f"TAKEOVER {k} {e} {d}")
-            L("TAKEOVER", f"Task {k} e={e} W{d}->W{b}")
-            st_tk += 1
+        now = time.monotonic()
+        check_failures(now)
         # --- POOL log ---
         if now - last_pool >= 5.0:
             last_pool = now
@@ -412,14 +438,15 @@ def main():
         while done_n < N_T:
             done_cv.wait(timeout=1.0)
 
-    elapsed = time.time() - t0 if t0 else 0
+    elapsed = time.monotonic() - t0 if t0 else 0
     # VERIFY
     all_done = all(tasks[k].state == DONE for k in range(N_T))
     total = sum(tasks[k].result for k in range(N_T) if tasks[k].result is not None)
     all_once = all(tasks[k].cc == 1 for k in range(N_T))
     dbl = sum(1 for k in range(N_T) if tasks[k].cc > 1)
     L("VERIFY", f"total={total} all_done={all_done} all_commit_once={all_once} double={dbl} elapsed={elapsed:.1f}s")
-    if total == 5761455 and all_done and all_once:
+    verified = total == 5761455 and all_done and all_once
+    if verified:
         L("VERIFY", "PASS")
     else:
         L("VERIFY", "FAIL")
@@ -436,10 +463,17 @@ def main():
 
     L("TERMINATE", f"elapsed={elapsed:.1f}s total={total} dead={st_dead} takeover={st_tk} rejoin={st_rj} reject={st_rej}")
 
-    if logf:
-        logf.close()
+    for t in threads:
+        t.join(timeout=3)
+    for w in wk.values():
+        if w.sock:
+            w.sock.close()
+    with logL:
+        if logf:
+            logf.close()
+            logf = None
     srv.close()
-    sys.exit(0)
+    sys.exit(0 if verified else 1)
 
 if __name__ == '__main__':
     main()

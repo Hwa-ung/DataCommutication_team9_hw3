@@ -39,6 +39,7 @@ class G:
     state = 'CONNECTING'     # CONNECTING/RUNNING/CRASHED/REJOINING
     crash_gen = 0
     stopping = False
+    failed = False
     start_received = False
     launcher_connected = False
     ready_sent = False
@@ -74,8 +75,8 @@ def _ts():
 def L(tag, msg):
     line = f"[{_ts()}] [W{G.wid}] [{tag}] {msg}"
     print(line, flush=True)
-    if logf:
-        with logL:
+    with logL:
+        if logf:
             logf.write(line + '\n')
             logf.flush()
 
@@ -87,10 +88,15 @@ def _send_raw(sock, lock, msg):
             sock.sendall(data)
         except OSError as e:
             L("WARN", f"send fail ({e}): {msg[:60]}")
+            return False
+    return True
 
 def send_coord(msg):
     if G.coord_sock:
-        _send_raw(G.coord_sock, coord_slock, msg)
+        if _send_raw(G.coord_sock, coord_slock, msg):
+            return True
+        stop_worker(failed=True)
+    return False
 
 def send_buddy(msg):
     if G.buddy_sock:
@@ -103,10 +109,10 @@ def send_launcher(msg):
 def send_if_alive(gen, target, msg):
     """Check state+gen, then send. Gap between check and send is OK (epoch protects)."""
     with state_lock:
-        if G.state != 'RUNNING' or G.crash_gen != gen:
+        if G.stopping or G.state != 'RUNNING' or G.crash_gen != gen:
             return False
     if target == 'coord':
-        send_coord(msg)
+        return send_coord(msg)
     elif target == 'buddy':
         send_buddy(msg)
     return True
@@ -133,23 +139,29 @@ def recv_line(sock, buf):
 
 # ===================== Handlers =====================
 def on_crash():
-    with state_lock:
-        G.state = 'CRASHED'
-        G.crash_gen += 1
-        gen = G.crash_gen
-        state_cv.notify_all()
+    # Lock order is q_lock -> state_lock -> store_lock, also used by
+    # take_task/assignment handlers. State changes and queue reset are atomic.
     with q_lock:
-        local_q.clear()
-        G.requested = False
-        G.no_task = False
-        q_cv.notify_all()
-    with store_lock:
-        store.clear()
+        with state_lock:
+            if G.stopping or G.state == 'CRASHED':
+                return
+            G.state = 'CRASHED'
+            G.crash_gen += 1
+            gen = G.crash_gen
+            local_q.clear()
+            G.requested = False
+            G.no_task = False
+            with store_lock:
+                store.clear()
+            state_cv.notify_all()
+            q_cv.notify_all()
     G.crash_count += 1
     L("CRASH", f"gen={gen}")
 
 def on_restart():
     with state_lock:
+        if G.stopping or G.state != 'CRASHED':
+            return
         G.state = 'REJOINING'
         state_cv.notify_all()
     L("RESTART", "-> REJOINING")
@@ -157,6 +169,8 @@ def on_restart():
 
 def on_welcome():
     with state_lock:
+        if G.stopping or G.state != 'REJOINING':
+            return
         G.state = 'RUNNING'
         G.start_received = True
         state_cv.notify_all()
@@ -166,49 +180,69 @@ def on_welcome():
     L("WELCOME", "-> RUNNING")
 
 def on_assign(k, e):
+    if not (0 <= k < 1000 and e >= 1):
+        return
     with q_lock:
-        local_q.append((k, e, 1, 0))
-        G.requested = False
-        q_cv.notify_all()
+        with state_lock:
+            if G.stopping or G.state not in ('RUNNING', 'REJOINING'):
+                return
+            local_q.append((k, e, 1, 0))
+            G.requested = False
+            q_cv.notify_all()
     L("ASSIGN", f"Task {k} e={e}")
 
 def on_takeover(k, e, d):
+    if not (0 <= k < 1000 and e >= 2 and 1 <= d <= 10):
+        return
     with q_lock:
-        G.no_task = False
-        with store_lock:
-            ck = store.get(k)
-        if ck:
-            s0, partial = ck[1] + 1, ck[2]
-            L("TAKEOVER", f"Task {k} e={e} from W{d} CKPT(s={ck[1]},p={ck[2]})")
-        else:
-            s0, partial = 1, 0
-            L("TAKEOVER", f"Task {k} e={e} from W{d} no-CKPT")
-        local_q.append((k, e, s0, partial))
-        q_cv.notify_all()
+        with state_lock:
+            if G.stopping or G.state not in ('RUNNING', 'REJOINING'):
+                return
+            G.no_task = False
+            with store_lock:
+                ck = store.get(k)
+            if ck and ck[0] < e and 1 <= ck[1] <= 9:
+                s0, partial = ck[1] + 1, ck[2]
+                L("TAKEOVER", f"Task {k} e={e} from W{d} CKPT(s={ck[1]},p={ck[2]})")
+            else:
+                s0, partial = 1, 0
+                L("TAKEOVER", f"Task {k} e={e} from W{d} no-CKPT")
+            local_q.append((k, e, s0, partial))
+            q_cv.notify_all()
 
 def on_no_task():
     with q_lock:
-        G.no_task = True
-        G.requested = False
+        with state_lock:
+            if G.stopping or G.state not in ('RUNNING', 'REJOINING'):
+                return
+            G.no_task = True
+            G.requested = False
     L("NO_TASK", "")
 
 def on_retry_later():
+    with state_lock:
+        gen = G.crash_gen
     L("RETRY_LATER", "retry REJOIN in 2s")
     def _retry():
         time.sleep(2.0)
         with state_lock:
-            should_send = (G.state == 'REJOINING')
+            should_send = (not G.stopping and G.state == 'REJOINING' and G.crash_gen == gen)
         if should_send:
             send_coord(f"REJOIN {G.wid}")
             L("REJOIN", "retry")
     threading.Thread(target=_retry, daemon=True).start()
 
-def on_bye():
+def stop_worker(failed=False):
     with state_lock:
         G.stopping = True
+        G.failed = G.failed or failed
         state_cv.notify_all()
     with q_lock:
         q_cv.notify_all()
+
+
+def on_bye():
+    stop_worker()
     L("BYE", "received")
 
 # ===================== Threads =====================
@@ -230,9 +264,9 @@ def _peer_dispatch(conn):
         conn.close()
         return
     parts = line.split()
-    if parts[0] == 'PEER':
+    if len(parts) == 2 and parts[0] == 'PEER' and parts[1].isdigit() and 1 <= int(parts[1]) <= 10:
         _ckpt_handler(conn, buf, int(parts[1]))
-    elif parts[0] == 'LAUNCHER':
+    elif parts == ['LAUNCHER']:
         _launcher_handler(conn, buf)
     else:
         conn.close()
@@ -244,17 +278,23 @@ def _ckpt_handler(conn, buf, from_wid):
         if line is None:
             break
         parts = line.split()
-        if parts[0] != 'CKPT' or len(parts) < 5:
+        if len(parts) != 5 or parts[0] != 'CKPT':
             continue
-        k, e, s, p = int(parts[1]), int(parts[2]), int(parts[3]), int(parts[4])
+        try:
+            k, e, s, p = map(int, parts[1:])
+        except ValueError:
+            continue
+        if not (0 <= k < 1000 and e >= 1 and 1 <= s <= 9 and 0 <= p <= s * 10_000):
+            continue
         with state_lock:
-            if G.state == 'CRASHED':
+            if G.stopping or G.state == 'CRASHED':
                 continue
-        with store_lock:
-            ex = store.get(k)
-            if ex is None or (e, s) > (ex[0], ex[1]):
-                store[k] = (e, s, p)
+            with store_lock:
+                ex = store.get(k)
+                if ex is None or (e, s) > (ex[0], ex[1]):
+                    store[k] = (e, s, p)
         G.ckpt_recv += 1
+    conn.close()
 
 def _launcher_handler(conn, buf):
     G.launcher_sock = conn
@@ -276,6 +316,7 @@ def _launcher_handler(conn, buf):
             on_crash()
         elif cmd == 'RESTART':
             on_restart()
+    conn.close()
 
 def control_recv_loop(buf):
     """Read from coordinator socket."""
@@ -284,6 +325,7 @@ def control_recv_loop(buf):
         if line is None:
             if not G.stopping:
                 L("ERROR", "coordinator disconnected")
+                stop_worker(failed=True)
             break
         parts = line.split()
         if not parts:
@@ -294,15 +336,18 @@ def control_recv_loop(buf):
             crashed = (G.state == 'CRASHED')
         if crashed and cmd != 'BYE':
             continue
-        if   cmd == 'ASSIGN':        on_assign(int(parts[1]), int(parts[2]))
-        elif cmd == 'TAKEOVER':      on_takeover(int(parts[1]), int(parts[2]), int(parts[3]))
-        elif cmd == 'ACK':           G.ack_n += 1; L("ACK", f"Task {parts[1]}")
-        elif cmd == 'REJECT_STALE':  G.reject_n += 1; L("REJECT", f"Task {parts[1]} {' '.join(parts[2:])}")
-        elif cmd == 'NO_TASK':       on_no_task()
-        elif cmd == 'WELCOME':       on_welcome()
-        elif cmd == 'RETRY_LATER':   on_retry_later()
-        elif cmd == 'BYE':           on_bye(); break
-        else:                        L("WARN", f"unknown coord msg: {line[:60]}")
+        try:
+            if   cmd == 'ASSIGN':        on_assign(int(parts[1]), int(parts[2]))
+            elif cmd == 'TAKEOVER':      on_takeover(int(parts[1]), int(parts[2]), int(parts[3]))
+            elif cmd == 'ACK':           G.ack_n += 1; L("ACK", f"Task {parts[1]}")
+            elif cmd == 'REJECT_STALE':  G.reject_n += 1; L("REJECT", f"Task {parts[1]} {' '.join(parts[2:])}")
+            elif cmd == 'NO_TASK':       on_no_task()
+            elif cmd == 'WELCOME':       on_welcome()
+            elif cmd == 'RETRY_LATER':   on_retry_later()
+            elif cmd == 'BYE':           on_bye(); break
+            else:                        L("WARN", f"unknown coord msg: {line[:60]}")
+        except (ValueError, IndexError):
+            L("WARN", f"invalid coord msg: {line[:60]}")
 
 def hb_loop():
     while not G.stopping:
@@ -353,10 +398,13 @@ def compute_loop():
         k, e, s0, partial, gen = result
         L("COMPUTE", f"Task {k} e={e} s0={s0} partial={partial}")
         for s in range(s0, 11):
-            if G.crash_gen != gen:
+            if G.stopping or G.crash_gen != gen:
                 break
             partial += count_primes(k, s)
-            time.sleep(G.step_delay / 1000.0)
+            with state_cv:
+                state_cv.wait_for(
+                    lambda: G.stopping or G.crash_gen != gen,
+                    timeout=G.step_delay / 1000.0)
             if s < 10:
                 if not send_if_alive(gen, 'buddy', f"CKPT {k} {e} {s} {partial}"):
                     break
@@ -377,6 +425,10 @@ def main():
     ap.add_argument('--step-delay', type=int, default=100)
     ap.add_argument('--log-dir', default='logs')
     args = ap.parse_args()
+    if not 1 <= args.id <= 10:
+        ap.error('--id must be between 1 and 10')
+    if args.step_delay < 0:
+        ap.error('--step-delay must be non-negative')
 
     G.wid = args.id
     G.step_delay = args.step_delay
@@ -400,6 +452,7 @@ def main():
             G.coord_sock.connect((args.coord_ip, args.coord_port))
             break
         except (ConnectionRefusedError, OSError):
+            G.coord_sock.close()
             time.sleep(0.5)
     G.coord_sock.sendall(f"HELLO {G.wid} {args.peer_ip} {peer_port}\n".encode())
     L("HELLO", f"sent ({args.peer_ip}:{peer_port})")
@@ -411,7 +464,7 @@ def main():
         if line is None:
             L("ERROR", "disconnected before RING"); return
         parts = line.split()
-        if parts[0] == 'RING':
+        if len(parts) == 4 and parts[0] == 'RING':
             buddy_id = int(parts[1]); buddy_ip = parts[2]; buddy_port = int(parts[3])
             break
     L("RING", f"buddy=W{buddy_id} {buddy_ip}:{buddy_port}")
@@ -423,8 +476,10 @@ def main():
             G.buddy_sock.connect((buddy_ip, buddy_port))
             break
         except (ConnectionRefusedError, OSError):
+            G.buddy_sock.close()
             time.sleep(0.5)
     G.buddy_sock.sendall(f"PEER {G.wid}\n".encode())
+    G.buddy_sock.settimeout(2.0)
     G.coord_sock.sendall(f"RING_OK {G.wid}\n".encode())
     L("RING_OK", "sent")
 
@@ -456,11 +511,18 @@ def main():
         threads.append(t)
 
     for t in threads:
-        t.join(timeout=600)
+        t.join()
 
     L("TERMINATE", f"tasks={G.tasks_done} ckpt_sent={G.ckpt_sent} ckpt_recv={G.ckpt_recv} crashes={G.crash_count} ack={G.ack_n} reject={G.reject_n}")
-    if logf:
-        logf.close()
+    peer_srv.close()
+    for sock in (G.coord_sock, G.buddy_sock, G.launcher_sock):
+        if sock:
+            sock.close()
+    with logL:
+        if logf:
+            logf.close()
+            logf = None
+    sys.exit(1 if G.failed else 0)
 
 if __name__ == '__main__':
     main()
