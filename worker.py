@@ -66,6 +66,9 @@ store = {}              # k -> (epoch, step, partial)
 coord_slock = threading.Lock()   # coord send lock
 buddy_slock = threading.Lock()   # buddy send lock
 launcher_slock = threading.Lock()
+# Serialize runtime sends with CRASH. State/queue/store locks are released
+# before network I/O; an in-flight send finishes before CRASH takes effect.
+runtime_send_lock = threading.RLock()
 
 logf = None; logL = threading.Lock()
 
@@ -107,15 +110,16 @@ def send_launcher(msg):
         _send_raw(G.launcher_sock, launcher_slock, msg)
 
 def send_if_alive(gen, target, msg):
-    """Check state+gen, then send. Gap between check and send is OK (epoch protects)."""
-    with state_lock:
-        if G.stopping or G.state != 'RUNNING' or G.crash_gen != gen:
-            return False
-    if target == 'coord':
-        return send_coord(msg)
-    elif target == 'buddy':
-        send_buddy(msg)
-    return True
+    """Order the state check and send against the CRASH transition."""
+    with runtime_send_lock:
+        with state_lock:
+            if G.stopping or G.state != 'RUNNING' or G.crash_gen != gen:
+                return False
+        if target == 'coord':
+            return send_coord(msg)
+        elif target == 'buddy':
+            send_buddy(msg)
+        return True
 
 def recv_line(sock, buf):
     """Blocking read of one \\n-delimited line. Returns None on EOF/close."""
@@ -139,6 +143,11 @@ def recv_line(sock, buf):
 
 # ===================== Handlers =====================
 def on_crash():
+    with runtime_send_lock:
+        _apply_crash()
+
+
+def _apply_crash():
     # Lock order is q_lock -> state_lock -> store_lock, also used by
     # take_task/assignment handlers. State changes and queue reset are atomic.
     with q_lock:
@@ -198,7 +207,6 @@ def on_takeover(k, e, d):
         with state_lock:
             if G.stopping or G.state not in ('RUNNING', 'REJOINING'):
                 return
-            G.no_task = False
             with store_lock:
                 ck = store.get(k)
             if ck and ck[0] < e and 1 <= ck[1] <= 9:
@@ -301,6 +309,7 @@ def _launcher_handler(conn, buf):
     L("LAUNCHER", "control connected")
     with state_lock:
         G.launcher_connected = True
+        state_cv.notify_all()
         do_ready = G.start_received and not G.ready_sent
         if do_ready:
             G.ready_sent = True
@@ -424,6 +433,8 @@ def main():
     ap.add_argument('--peer-ip', default='127.0.0.1')
     ap.add_argument('--step-delay', type=int, default=100)
     ap.add_argument('--log-dir', default='logs')
+    ap.add_argument('--wait-for-launcher', action='store_true',
+                    help='wait for the launcher control connection before registration')
     args = ap.parse_args()
     if not 1 <= args.id <= 10:
         ap.error('--id must be between 1 and 10')
@@ -444,6 +455,14 @@ def main():
     peer_srv.bind(('0.0.0.0', peer_port))
     peer_srv.listen(5)
     threading.Thread(target=peer_server_thread, args=(peer_srv,), daemon=True).start()
+
+    # The launcher opts in so a fast job cannot finish before its control
+    # sockets exist. Direct/manual worker launches keep their previous behavior.
+    if args.wait_for_launcher:
+        with state_cv:
+            state_cv.wait_for(lambda: G.launcher_connected or G.stopping)
+            if G.stopping:
+                return
 
     # --- connect to coordinator ---
     while True:

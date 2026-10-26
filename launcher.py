@@ -159,6 +159,7 @@ def run():
                '--coord-port', str(args.coord_port),
                '--peer-ip', args.peer_ip,
                '--step-delay', str(args.step_delay),
+               '--wait-for-launcher',
                '--log-dir', args.log_dir]
         procs[i] = subprocess.Popen(cmd)
         L("START_W", f"W{i} pid={procs[i].pid}")

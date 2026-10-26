@@ -159,6 +159,53 @@ class WorkerTests(unittest.TestCase):
             self.assertFalse(self.w.send_if_alive(0, 'coord', 'REQ 1'))
         send.assert_not_called()
 
+    def test_crash_is_serialized_with_inflight_send(self):
+        self.w.G.state = 'RUNNING'
+        entered = threading.Event()
+        release = threading.Event()
+        crashed = threading.Event()
+        sent_states = []
+
+        def sendall(data):
+            entered.set()
+            if not release.wait(2):
+                raise AssertionError('send gate timed out')
+            sent_states.append(self.w.G.state)
+
+        self.w.G.coord_sock = Mock()
+        self.w.G.coord_sock.sendall.side_effect = sendall
+        sender = threading.Thread(target=self.w.send_if_alive,
+                                  args=(0, 'coord', 'HB 1'))
+
+        def crash():
+            self.w.on_crash()
+            crashed.set()
+
+        crasher = threading.Thread(target=crash)
+        sender.start()
+        try:
+            self.assertTrue(entered.wait(2))
+            crasher.start()
+            self.assertFalse(crashed.wait(0.05))
+        finally:
+            release.set()
+            sender.join(2)
+            if crasher.ident is not None:
+                crasher.join(2)
+        self.assertFalse(sender.is_alive())
+        self.assertFalse(crasher.is_alive())
+        self.assertEqual(sent_states, ['RUNNING'])
+        self.assertEqual(self.w.G.state, 'CRASHED')
+        self.assertFalse(self.w.send_if_alive(0, 'coord', 'HB 1'))
+        self.w.G.coord_sock.sendall.assert_called_once()
+
+    def test_takeover_preserves_no_task_flag(self):
+        self.w.G.state = 'RUNNING'
+        self.w.on_no_task()
+        self.w.on_takeover(0, 2, 10)
+        self.assertTrue(self.w.G.no_task)
+        self.assertEqual(list(self.w.local_q), [(0, 2, 1, 0)])
+
     def test_blank_and_bad_checkpoint_lines_do_not_kill_receiver(self):
         self.w.G.state = 'RUNNING'
         conn = Mock()
